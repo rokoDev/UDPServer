@@ -15,3 +15,5 @@ profile
 build/
 
 xcode/
+
+deps_content/

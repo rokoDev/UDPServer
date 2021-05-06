@@ -1,8 +1,5 @@
 #include <fmt/format.h>
-#include <ndt/address.h>
-#include <ndt/socket.h>
-#include <ndt/udp.h>
-#include <ndt/utils.h>
+#include <ndt/core.h>
 #include <ndt/version_info.h>
 
 #include <iostream>
@@ -23,35 +20,34 @@ int main(void)
         fmt::print("{}", server::version_info());
         fmt::print("{}", ndt::version_info());
         std::string userMsg;
-        ndt::UDP::Socket s = ndt::UDP::Socket(ndt::UDP::V4(), kPort);
+        ndt::Context<ndt::System> ctx;
+        ndt::UDP::Socket s = ndt::UDP::Socket(ctx, ndt::UDP::V4(), kPort);
         ndt::Address sender;
         char buf[kBufSize] = {0};
+        ndt::Buffer recvBuf(buf);
         while (1)
         {
             fmt::print("\nWaiting for data...");
             // try to receive some data, this is a blocking call
-            const std::size_t kRecievedLen = s.recvFrom(buf, kBufSize, sender);
+            const std::size_t kRecievedLen = s.recvFrom(recvBuf, sender);
 
             // print details of the the data received
             fmt::print("\n{} bytes received: {}", kRecievedLen,
                        fmt::format("{:.{}}", buf, kRecievedLen));
 
             // now reply the client with the same data
-            const std::size_t kSentLen = s.sendTo(sender, buf, kRecievedLen);
+            const std::size_t kSentLen = s.sendTo(sender, ndt::CBuffer(buf));
             fmt::print("\n{} bytes sent\n", kSentLen);
         }
     }
-    catch (const ndt::exception::RuntimeError &re)
+    catch (const ndt::Error &e)
     {
-        std::cout << re;
-    }
-    catch (const ndt::exception::LogicError &le)
-    {
-        std::cout << le;
+        fmt::print("ndt::Error >> code: {}. reason: {}\n", e.code().value(),
+                   e.what());
     }
     catch (std::exception &e)
     {
-        fmt::print("Error: {}\n", e.what());
+        fmt::print("Error >> reason: {}\n", e.what());
     }
     catch (...)
     {
